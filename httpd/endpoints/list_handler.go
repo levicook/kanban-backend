@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/dimfeld/httptreemux"
-	"github.com/levicook/kanban-backend/httpd/send"
 	"github.com/levicook/kanban-backend/httpd/status"
 )
 
@@ -25,25 +24,25 @@ func listHandler(
 
 		if l.notAcceptable(r.Header) {
 			panicIf(t.Rollback())
-			send.NotAcceptable(w)
+			sendNotAcceptable(w)
 			return
 		}
 
 		if l.unauthorized(r.Header) {
 			panicIf(t.Rollback())
-			send.Unauthorized(w)
+			sendUnauthorized(w)
 			return
 		}
 
 		if l.badRequest(r.Body) {
 			panicIf(t.Rollback())
-			send.BadRequest(w)
+			sendBadRequest(w)
 			return
 		}
 
 		if l.forbidden() {
 			panicIf(t.Rollback())
-			send.Forbidden(w)
+			sendForbidden(w)
 			return
 		}
 
@@ -53,11 +52,11 @@ func listHandler(
 		etag := etagFor(list)
 
 		if etag == r.Header.Get("If-None-Match") {
-			send.NotModified(w)
+			sendNotModified(w)
 			return
 		}
 
 		w.Header().Set("ETag", etag)
-		send.Json(w, status.OK, list)
+		sendJSON(w, status.OK, list)
 	}
 }

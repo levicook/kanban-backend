@@ -6,11 +6,11 @@ type mockTransaction struct {
 }
 
 func (m *mockTransaction) Commit() error {
-	m.commitCalls += 1
+	m.commitCalls++
 	return nil
 }
 
 func (m *mockTransaction) Rollback() error {
-	m.rollbackCalls += 1
+	m.rollbackCalls++
 	return nil
 }

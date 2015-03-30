@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 )
 
-func readJson(body io.ReadCloser, v interface{}) (err error) {
+func readJSON(body io.ReadCloser, v interface{}) (err error) {
 	var data []byte
 
 	if data, err = ioutil.ReadAll(io.LimitReader(body, 10*mb)); err != nil {

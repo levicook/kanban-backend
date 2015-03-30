@@ -22,7 +22,7 @@ func (c *boardCreator) unauthorized(http.Header) bool {
 }
 
 func (c *boardCreator) processBody(body io.ReadCloser) bool {
-	err := readJson(body, &c.board)
+	err := readJSON(body, &c.board)
 	// todo log err
 	return err == nil
 }
