@@ -7,8 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/levicook/todo-api/httpd/status"
-	"github.com/levicook/todo-api/models"
+	"github.com/levicook/kanban-backend/httpd/status"
+	"github.com/levicook/kanban-backend/models"
+	"github.com/levicook/kanban-backend/repos"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,14 +20,21 @@ func Test_createHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = createHandler(func() creator {
-				return fakeCreator{
-					notAcceptableStub: func(http.Header) bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = createHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) creator {
+					return fakeCreator{
+						notAcceptableStub: func(http.Header) bool { return true },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.NotAcceptable, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -38,15 +46,22 @@ func Test_createHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = createHandler(func() creator {
-				return fakeCreator{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = createHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) creator {
+					return fakeCreator{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return true },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.Unauthorized, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -58,16 +73,23 @@ func Test_createHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = createHandler(func() creator {
-				return fakeCreator{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = createHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) creator {
+					return fakeCreator{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						processBodyStub:   func(io.ReadCloser) bool { return false },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.BadRequest, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -79,17 +101,24 @@ func Test_createHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = createHandler(func() creator {
-				return fakeCreator{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return false },
-					forbiddenStub:     func() bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = createHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) creator {
+					return fakeCreator{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						processBodyStub:   func(io.ReadCloser) bool { return true },
+						forbiddenStub:     func() bool { return true },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.Forbidden, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -101,20 +130,27 @@ func Test_createHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = createHandler(func() creator {
-				return fakeCreator{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return false },
-					forbiddenStub:     func() bool { return false },
-					createStub: func() (interface{}, models.Errors) {
-						return nil, models.Errors{"base": "is invalid"}
-					},
-				}
-			})
+			m = mockTransaction{}
+			h = createHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) creator {
+					return fakeCreator{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						processBodyStub:   func(io.ReadCloser) bool { return true },
+						forbiddenStub:     func() bool { return false },
+						createStub: func() (interface{}, models.Errors) {
+							return nil, models.Errors{"base": "is invalid"}
+						},
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.UnprocessableEntity, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -130,20 +166,27 @@ func Test_createHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = createHandler(func() creator {
-				return fakeCreator{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return false },
-					forbiddenStub:     func() bool { return false },
-					createStub: func() (interface{}, models.Errors) {
-						return "hello", models.Errors{}
-					},
-				}
-			})
+			m = mockTransaction{}
+			h = createHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) creator {
+					return fakeCreator{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						processBodyStub:   func(io.ReadCloser) bool { return true },
+						forbiddenStub:     func() bool { return false },
+						createStub: func() (interface{}, models.Errors) {
+							return "hello", models.Errors{}
+						},
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 0, m.rollbackCalls)
+		assert.Equal(t, 1, m.commitCalls)
 
 		assert.Equal(t, status.Created, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))

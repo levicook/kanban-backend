@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/levicook/todo-api/models"
-	"github.com/levicook/todo-api/repos"
+	"github.com/levicook/kanban-backend/models"
+	"github.com/levicook/kanban-backend/repos"
 )
 
 type boardLister struct {

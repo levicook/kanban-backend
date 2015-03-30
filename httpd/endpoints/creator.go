@@ -4,15 +4,13 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/levicook/todo-api/models"
+	"github.com/levicook/kanban-backend/models"
 )
-
-type creatorFactory func() creator
 
 type creator interface {
 	notAcceptable(http.Header) bool
 	unauthorized(http.Header) bool
-	badRequest(io.ReadCloser) bool
+	processBody(io.ReadCloser) bool
 	forbidden() bool
 	create() (interface{}, models.Errors)
 }

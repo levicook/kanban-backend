@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/levicook/kanban-backend/httpd/status"
+	"github.com/levicook/kanban-backend/models"
 	"github.com/levicook/slog"
-	"github.com/levicook/todo-api/httpd/status"
-	"github.com/levicook/todo-api/models"
 )
 
 type errDoc struct {

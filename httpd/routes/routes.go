@@ -1,6 +1,6 @@
 package routes
 
-import "github.com/levicook/todo-api/httpd/endpoints"
+import "github.com/levicook/kanban-backend/httpd/endpoints"
 
 var Routes = routeSet{
 

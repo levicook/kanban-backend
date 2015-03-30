@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/levicook/todo-api/models"
-	"github.com/levicook/todo-api/repos"
+	"github.com/levicook/kanban-backend/models"
+	"github.com/levicook/kanban-backend/repos"
 )
 
 type boardCreator struct {
@@ -14,15 +14,17 @@ type boardCreator struct {
 }
 
 func (c *boardCreator) notAcceptable(http.Header) bool {
-	return true
+	return false
 }
 
 func (c *boardCreator) unauthorized(http.Header) bool {
 	return true
 }
 
-func (c *boardCreator) badRequest(io.ReadCloser) bool {
-	return true
+func (c *boardCreator) processBody(body io.ReadCloser) bool {
+	err := readJson(body, &c.board)
+	// todo log err
+	return err == nil
 }
 
 func (c *boardCreator) forbidden() bool {
@@ -30,5 +32,5 @@ func (c *boardCreator) forbidden() bool {
 }
 
 func (c *boardCreator) create() (entity interface{}, errors models.Errors) {
-	return
+	return c.board, c.boardRepo.Create(&c.board)
 }

@@ -1,14 +1,21 @@
 package endpoints
 
-import "github.com/dimfeld/httptreemux"
+import (
+	"fmt"
+
+	"github.com/dimfeld/httptreemux"
+	"github.com/levicook/kanban-backend/repos"
+	"github.com/levicook/slog"
+)
 
 var (
 	BoardCreate httptreemux.HandlerFunc
 	Board       httptreemux.HandlerFunc
 	BoardUpdate httptreemux.HandlerFunc
 	Boards      httptreemux.HandlerFunc
-	BoardCards  httptreemux.HandlerFunc
-	BoardLists  httptreemux.HandlerFunc
+
+	BoardCards httptreemux.HandlerFunc
+	BoardLists httptreemux.HandlerFunc
 
 	CardCreate httptreemux.HandlerFunc
 
@@ -21,11 +28,23 @@ var (
 
 func init() {
 
-	BoardCreate = createHandler(func() creator { return &boardCreator{} })
+	BoardCreate = createHandler(
+		repos.NewTransaction,
+		func(t repos.Transaction) creator {
+			return &boardCreator{
+				boardRepo: repos.NewBoardRepo(t),
+			}
+		},
+	)
+
 	Board = notImplemented
+
 	BoardUpdate = notImplemented
-	Boards = listHandler(func() lister { return &boardLister{} })
+
+	Boards = notImplemented
+
 	BoardCards = notImplemented
+
 	BoardLists = notImplemented
 
 	CardCreate = notImplemented
@@ -33,6 +52,13 @@ func init() {
 	ListCreate = notImplemented
 
 	OrgCreate = notImplemented
+
 	Org = notImplemented
+
 	OrgBoards = notImplemented
 }
+
+var (
+	panicIf = slog.PanicIf
+	sprintf = fmt.Sprintf
+)

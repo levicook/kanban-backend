@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/levicook/todo-api/httpd/status"
+	"github.com/levicook/kanban-backend/httpd/status"
+	"github.com/levicook/kanban-backend/repos"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,14 +19,19 @@ func Test_listHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = listHandler(func() lister {
-				return fakeLister{
-					notAcceptableStub: func(http.Header) bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = listHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) lister {
+					return fakeLister{notAcceptableStub: func(http.Header) bool { return true }}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.NotAcceptable, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -37,15 +43,22 @@ func Test_listHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = listHandler(func() lister {
-				return fakeLister{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = listHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) lister {
+					return fakeLister{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return true },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.Unauthorized, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -57,16 +70,23 @@ func Test_listHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = listHandler(func() lister {
-				return fakeLister{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = listHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) lister {
+					return fakeLister{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						badRequestStub:    func(io.ReadCloser) bool { return true },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.BadRequest, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -78,17 +98,24 @@ func Test_listHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = listHandler(func() lister {
-				return fakeLister{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return false },
-					forbiddenStub:     func() bool { return true },
-				}
-			})
+			m = mockTransaction{}
+			h = listHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) lister {
+					return fakeLister{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						badRequestStub:    func(io.ReadCloser) bool { return false },
+						forbiddenStub:     func() bool { return true },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 1, m.rollbackCalls)
+		assert.Equal(t, 0, m.commitCalls)
 
 		assert.Equal(t, status.Forbidden, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))
@@ -100,21 +127,28 @@ func Test_listHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = listHandler(func() lister {
-				return fakeLister{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return false },
-					forbiddenStub:     func() bool { return false },
-					listStub:          func() interface{} { return []string{} },
-				}
-			})
+			m = mockTransaction{}
+			h = listHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) lister {
+					return fakeLister{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						badRequestStub:    func(io.ReadCloser) bool { return false },
+						forbiddenStub:     func() bool { return false },
+						listStub:          func(routeParams) interface{} { return []string{} },
+					}
+				},
+			)
 		)
 
 		r.Header = http.Header{}
 		r.Header.Set("If-None-Match", "58e0494c51d30eb3494f7c9198986bb9")
 
 		h(w, &r, p)
+
+		assert.Equal(t, 0, m.rollbackCalls)
+		assert.Equal(t, 1, m.commitCalls)
 
 		assert.Equal(t, status.NotModified, w.Code)
 		assert.Equal(t, "text/plain; charset=utf-8", w.Header().Get("Content-Type"))
@@ -126,18 +160,25 @@ func Test_listHandler(t *testing.T) {
 			w = httptest.NewRecorder()
 			r http.Request
 			p map[string]string
-			h = listHandler(func() lister {
-				return fakeLister{
-					notAcceptableStub: func(http.Header) bool { return false },
-					unauthorizedStub:  func(http.Header) bool { return false },
-					badRequestStub:    func(io.ReadCloser) bool { return false },
-					forbiddenStub:     func() bool { return false },
-					listStub:          func() interface{} { return []string{"hello"} },
-				}
-			})
+			m = mockTransaction{}
+			h = listHandler(
+				func() repos.Transaction { return &m },
+				func(repos.Transaction) lister {
+					return fakeLister{
+						notAcceptableStub: func(http.Header) bool { return false },
+						unauthorizedStub:  func(http.Header) bool { return false },
+						badRequestStub:    func(io.ReadCloser) bool { return false },
+						forbiddenStub:     func() bool { return false },
+						listStub:          func(routeParams) interface{} { return []string{"hello"} },
+					}
+				},
+			)
 		)
 
 		h(w, &r, p)
+
+		assert.Equal(t, 0, m.rollbackCalls)
+		assert.Equal(t, 1, m.commitCalls)
 
 		assert.Equal(t, status.OK, w.Code)
 		assert.Equal(t, "application/json; charset=UTF-8", w.Header().Get("Content-Type"))

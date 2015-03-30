@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/levicook/todo-api/env"
-	"github.com/levicook/todo-api/httpd/routes"
+	"github.com/levicook/kanban-backend/env"
+	"github.com/levicook/kanban-backend/httpd/routes"
 	"github.com/mitchellh/cli"
 )
 
