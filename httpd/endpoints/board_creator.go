@@ -18,7 +18,8 @@ func (c *boardCreator) notAcceptable(http.Header) bool {
 }
 
 func (c *boardCreator) unauthorized(http.Header) bool {
-	return true
+	// todo get identity
+	return c.boardRepo.CanCreate(c.board, identity)
 }
 
 func (c *boardCreator) processBody(body io.ReadCloser) bool {

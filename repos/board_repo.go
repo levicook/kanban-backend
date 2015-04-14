@@ -7,8 +7,9 @@ import (
 
 type BoardRepo interface {
 	CanCreate(models.Board, models.Identity) bool
-	CanUpdate(models.Board, models.Identity) bool
+	CanUpdate(models.BoardId, models.Identity) bool
 
+	OneById(models.BoardId) models.Errors
 	Create(*models.Board) models.Errors
 }
 
